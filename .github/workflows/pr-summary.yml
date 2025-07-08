@@ -1,0 +1,144 @@
+name: PR Summary Generator
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  pr-summary:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get PR diff
+      id: get-diff
+      run: |
+        git fetch origin ${{ github.event.pull_request.base.ref }}
+        DIFF=$(git diff origin/${{ github.event.pull_request.base.ref }}..HEAD --name-only)
+        echo "files_changed<<EOF" >> $GITHUB_OUTPUT
+        echo "$DIFF" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        # Get detailed diff for analysis
+        DETAILED_DIFF=$(git diff origin/${{ github.event.pull_request.base.ref }}..HEAD)
+        echo "detailed_diff<<EOF" >> $GITHUB_OUTPUT
+        echo "$DETAILED_DIFF" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+    
+    - name: Generate PR Summary
+      id: generate-summary
+      run: |
+        python3 << 'EOF'
+        import os
+        import json
+        import requests
+        
+        # Prepare the prompt for OpenAI
+        diff_content = """${{ steps.get-diff.outputs.detailed_diff }}"""
+        files_changed = """${{ steps.get-diff.outputs.files_changed }}"""
+        
+        # Truncate diff if too long (OpenAI has token limits)
+        if len(diff_content) > 8000:
+            diff_content = diff_content[:8000] + "\n\n... (truncated for length)"
+        
+        prompt = f"""
+        Analyze this pull request and provide a comprehensive summary:
+        
+        Files changed:
+        {files_changed}
+        
+        Detailed changes:
+        {diff_content}
+        
+        Please provide:
+        1. A brief summary of what this PR does
+        2. Key changes made
+        3. Potential impact and risks
+        4. Any recommendations for reviewers
+        
+        Format the response in markdown.
+        """
+        
+        # Make API call to OpenAI
+        headers = {
+            'Authorization': f'Bearer ${{ secrets.OPENAI_API_KEY }}',
+            'Content-Type': 'application/json'
+        }
+        
+        data = {
+            'model': 'gpt-3.5-turbo',
+            'messages': [
+                {'role': 'system', 'content': 'You are a senior software engineer reviewing code changes. Provide clear, actionable feedback.'},
+                {'role': 'user', 'content': prompt}
+            ],
+            'max_tokens': 1000,
+            'temperature': 0.3
+        }
+        
+        try:
+            response = requests.post('https://api.openai.com/v1/chat/completions', 
+                                   headers=headers, json=data)
+            
+            if response.status_code == 200:
+                result = response.json()
+                summary = result['choices'][0]['message']['content']
+                
+                # Write summary to file
+                with open('pr_summary.md', 'w') as f:
+                    f.write(summary)
+                
+                print("✅ PR summary generated successfully")
+            else:
+                print(f"❌ OpenAI API error: {response.status_code}")
+                with open('pr_summary.md', 'w') as f:
+                    f.write("## PR Summary\n\nAutomatic summary generation failed. Please review manually.")
+                
+        except Exception as e:
+            print(f"❌ Error generating summary: {e}")
+            with open('pr_summary.md', 'w') as f:
+                f.write("## PR Summary\n\nAutomatic summary generation failed. Please review manually.")
+        EOF
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    
+    - name: Comment PR with summary
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('pr_summary.md', 'utf8');
+          
+          // Find existing comment
+          const comments = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const existingComment = comments.data.find(comment => 
+            comment.body.includes('🤖 **Automated PR Summary**')
+          );
+          
+          const body = `🤖 **Automated PR Summary**\n\n${summary}\n\n---\n*This summary was generated using OpenAI GPT-3.5*`;
+          
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: body
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+          } 
