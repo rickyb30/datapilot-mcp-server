@@ -554,6 +554,11 @@ async def cleanup():
         logger.info("Snowflake connection closed")
 
 
+def create_server():
+    """Create and return the MCP server instance"""
+    return mcp
+
+
 def main():
     """Main entry point for the MCP server"""
     print("🚀 Starting DataPilot MCP Server...")
