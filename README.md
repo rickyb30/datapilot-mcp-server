@@ -2,7 +2,7 @@
 
 [![CI/CD Pipeline](https://github.com/rickyb30/datapilot-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/rickyb30/datapilot-mcp-server/actions/workflows/ci.yml)
 [![Coverage Status](https://codecov.io/gh/rickyb30/datapilot-mcp-server/branch/main/graph/badge.svg)](https://codecov.io/gh/rickyb30/datapilot-mcp-server)
-[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Security: bandit](https://img.shields.io/badge/security-bandit-green.svg)](https://github.com/PyCQA/bandit)

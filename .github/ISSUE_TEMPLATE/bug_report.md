@@ -25,7 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Environment:**
  - OS: [e.g. macOS, Linux, Windows]
- - Python version: [e.g. 3.9, 3.10, 3.11]
+ - Python version: [e.g. 3.11, 3.12, 3.13]
  - DataPilot version: [e.g. 0.1.0]
  - Snowflake connector version: [e.g. 3.0.0]
 
