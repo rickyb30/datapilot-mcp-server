@@ -5,16 +5,22 @@ from unittest.mock import Mock, patch
 import os
 import sys
 
-# Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+# Add project root to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from main import create_server
-from models import SnowflakeConnection
+from src.main import create_server
+from src.models import SnowflakeConnection
 
 
 class TestMain:
     """Test cases for main module."""
     
+    @patch.dict(os.environ, {
+        'SNOWFLAKE_ACCOUNT': 'test_account',
+        'SNOWFLAKE_USER': 'test_user',
+        'SNOWFLAKE_PASSWORD': 'test_password',
+        'OPENAI_API_KEY': 'test_key'
+    })
     def test_create_server_returns_server_instance(self):
         """Test that create_server returns a server instance."""
         server = create_server()
@@ -56,6 +62,12 @@ class TestMain:
         assert conn.user == 'test_user'
         assert conn.password == 'test_password'
     
+    @patch.dict(os.environ, {
+        'SNOWFLAKE_ACCOUNT': 'test_account',
+        'SNOWFLAKE_USER': 'test_user',
+        'SNOWFLAKE_PASSWORD': 'test_password',
+        'OPENAI_API_KEY': 'test_key'
+    })
     def test_server_has_required_capabilities(self):
         """Test that server has all required capabilities."""
         server = create_server()
@@ -76,6 +88,19 @@ class TestMain:
         
         for tool_name in expected_tools:
             assert tool_name in tool_names, f"Tool {tool_name} not found in server tools"
+    
+    def test_imports_work(self):
+        """Test that basic imports work correctly."""
+        # This should not raise any exceptions
+        from src.main import create_server
+        from src.models import SnowflakeConnection
+        from src.snowflake_client import SnowflakeClient
+        from src.openai_client import OpenAIClient
+        
+        assert create_server is not None
+        assert SnowflakeConnection is not None
+        assert SnowflakeClient is not None
+        assert OpenAIClient is not None
 
 
 @pytest.mark.asyncio

@@ -218,4 +218,11 @@ safety-report.json
 
 # MCP specific
 mcp-logs/
-*.mcp 
+*.mcp
+
+# Platform-specific deployment configs (created per deployment)
+railway.toml
+render.yaml
+fly.toml
+vercel.json
+netlify.toml 
